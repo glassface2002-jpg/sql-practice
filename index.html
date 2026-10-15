@@ -1,0 +1,256 @@
+<title>SQL Practice Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: ledger-style lesson index on the left, reading column + query workbench on the right. */
+:root {
+  --paper: #f3f5f8;
+  --sheet: #ffffff;
+  --ink: #17223b;
+  --ink-soft: #4a5672;
+  --rule: #d7dde8;
+  --accent: #1d6f8a;
+  --accent-soft: #e1eff4;
+  --mark: #f3c34a;
+  --mark-soft: #fdf4dc;
+  --good: #23824f;
+  --good-soft: #e3f3e9;
+  --bad: #b3372d;
+  --bad-soft: #fbe9e7;
+  --code-bg: #eef1f6;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f1522; --sheet: #161e2e; --ink: #e4e9f2; --ink-soft: #9aa6bd; --rule: #2a3550;
+    --accent: #5fb7d4; --accent-soft: #17303d; --mark: #e8b93b; --mark-soft: #2d2714;
+    --good: #5cc98b; --good-soft: #14291e; --bad: #f08a80; --bad-soft: #351a18; --code-bg: #1c2638;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f1522; --sheet: #161e2e; --ink: #e4e9f2; --ink-soft: #9aa6bd; --rule: #2a3550;
+  --accent: #5fb7d4; --accent-soft: #17303d; --mark: #e8b93b; --mark-soft: #2d2714;
+  --good: #5cc98b; --good-soft: #14291e; --bad: #f08a80; --bad-soft: #351a18; --code-bg: #1c2638;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.6 var(--font-body); }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, kbd, pre, textarea { font-family: var(--font-mono); font-size: 0.88em; font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
+kbd { border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--sheet); }
+
+/* header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; display: flex; align-items: center; gap: 16px;
+  padding: 10px 16px; background: var(--sheet); border-bottom: 1px solid var(--rule); }
+.brand { white-space: nowrap; font: 700 1.15rem/1 var(--font-display); letter-spacing: -0.01em; color: var(--ink); text-decoration: none; display: flex; align-items: baseline; gap: 6px; }
+.brand b { color: var(--accent); font-family: var(--font-mono); font-size: 0.95rem; }
+.meter { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.meter-bar { width: 120px; height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+#meter-fill { display: block; height: 100%; width: 0; background: var(--good); transition: width .4s; }
+#menu { display: none; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 6px; padding: 6px 10px; font: 500 0.85rem var(--font-body); cursor: pointer; }
+
+/* shell */
+.shell { display: grid; grid-template-columns: 270px minmax(0, 1fr); max-width: 1240px; margin: 0 auto; }
+#nav { position: sticky; top: 53px; align-self: start; max-height: calc(100vh - 53px); overflow-y: auto; padding: 20px 12px 40px 16px; border-right: 1px solid var(--rule); }
+.nav-head { margin: 18px 8px 6px; font: 600 0.72rem var(--font-body); text-transform: uppercase; letter-spacing: 0.09em; color: var(--ink-soft); }
+.nav-head:first-child { margin-top: 0; }
+.nav-list { list-style: none; margin: 0; padding: 0; }
+.nav-link { display: grid; grid-template-columns: 26px 1fr 14px; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px;
+  color: var(--ink); text-decoration: none; font-size: 0.9rem; line-height: 1.3; }
+.nav-link:hover { background: var(--accent-soft); }
+.nav-link.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.nav-num { font: 400 0.75rem var(--font-mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.nav-state { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--rule); }
+.nav-link.partial .nav-state { border-color: var(--mark); background: linear-gradient(90deg, var(--mark) 50%, transparent 50%); }
+.nav-link.done .nav-state { border-color: var(--good); background: var(--good); }
+.nav-foot { margin: 28px 8px 0; font-size: 0.8rem; color: var(--ink-soft); display: grid; gap: 8px; }
+.transfer { display: grid; gap: 8px; max-width: 560px; }
+.transfer .actions { margin-top: 0; }
+#code-box { width: 100%; resize: vertical; border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; background: var(--code-bg); color: var(--ink); font-size: 0.8rem; word-break: break-all; }
+.link-btn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.confirm { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.confirm .danger { color: var(--bad); }
+
+main { padding: 32px 40px 80px; min-width: 0; outline: none; }
+.lesson { max-width: 780px; }
+.eyebrow { margin: 0 0 6px; font: 600 0.75rem var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); }
+h1 { margin: 0 0 18px; font: 700 clamp(1.8rem, 4vw, 2.5rem)/1.1 var(--font-display); letter-spacing: -0.02em; text-wrap: balance; }
+.body h2 { font: 700 1.3rem/1.25 var(--font-display); margin: 30px 0 8px; text-wrap: balance; }
+.body h3 { font: 600 1rem var(--font-body); margin: 22px 0 6px; }
+.body p, .body li { max-width: 68ch; }
+.body code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre.code { background: var(--code-bg); border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 12px 0; line-height: 1.5; border-left: 3px solid var(--accent); }
+pre.code code { background: none; padding: 0; font-size: 0.86rem; }
+.note { background: var(--mark-soft); border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+.note p { margin: 0; }
+.body table.ref { border-collapse: collapse; font-size: 0.9rem; margin: 12px 0; }
+.body table.ref th, .body table.ref td { border-bottom: 1px solid var(--rule); padding: 6px 12px 6px 0; text-align: left; vertical-align: top; }
+.body table.ref th { font-weight: 600; color: var(--ink-soft); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.ref-wrap { overflow-x: auto; }
+
+/* workbench */
+.bench { margin-top: 36px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; }
+.bench-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--rule); }
+.bench-head h2 { margin: 0; font: 700 1.1rem var(--font-display); }
+.bench-section { padding: 14px 18px; border-bottom: 1px solid var(--rule); min-width: 0; }
+.label { margin: 0 0 8px; font: 600 0.72rem var(--font-body); text-transform: uppercase; letter-spacing: 0.09em; color: var(--ink-soft); }
+#table-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.tab { border: 1px solid var(--rule); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 3px 12px; font: 500 0.8rem var(--font-mono); cursor: pointer; }
+.tab.on { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+.tag { font-size: 0.68rem; opacity: 0.75; }
+.grid-wrap { overflow: auto; max-height: 320px; border: 1px solid var(--rule); border-radius: 8px; }
+table.grid { border-collapse: collapse; width: 100%; font: 400 0.82rem var(--font-mono); }
+table.grid th { position: sticky; top: 0; background: var(--code-bg); text-align: left; font-weight: 600; padding: 6px 12px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+table.grid td { padding: 5px 12px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+table.grid tr:last-child td { border-bottom: 0; }
+table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.grid td.null { color: var(--ink-soft); font-style: italic; }
+#editor { display: block; width: 100%; min-height: 130px; resize: vertical; border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px;
+  background: var(--code-bg); color: var(--ink); font: 400 0.92rem/1.55 var(--font-mono); tab-size: 2; }
+#editor:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.btn { border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 8px; padding: 8px 14px; font: 500 0.88rem var(--font-body); cursor: pointer; }
+.btn:hover { border-color: var(--ink-soft); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--sheet); font-weight: 600; }
+.hint-keys { margin-left: auto; font-size: 0.78rem; color: var(--ink-soft); }
+.feedback { margin: 10px 0 0; font-size: 0.9rem; min-height: 1.4em; }
+.feedback.good { color: var(--good); font-weight: 600; }
+.feedback.warn { color: var(--ink-soft); }
+.rowcount, .ok-line { margin: 0 0 8px; font-size: 0.82rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.ok-line { color: var(--good); }
+.error { background: var(--bad-soft); border-radius: 8px; padding: 10px 14px; }
+.error p { margin: 4px 0; font-size: 0.9rem; }
+.error-title { color: var(--bad); font-weight: 600; }
+.muted { color: var(--ink-soft); font-size: 0.88rem; margin: 0; }
+
+#tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.task { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 8px 10px; border-radius: 8px; }
+.task p { margin: 0; }
+.task-mark { margin-top: 4px; width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--rule); }
+.task.done .task-text { color: var(--ink-soft); }
+.task.done .task-mark { background: var(--good); border-color: var(--good); position: relative; }
+.task.done .task-mark::after { content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid var(--sheet); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.task.now { background: var(--mark-soft); }
+.task.now .task-mark { border-color: var(--mark); border-width: 2px; }
+.task.later { opacity: 0.6; }
+.task code { background: var(--code-bg); padding: 1px 4px; border-radius: 4px; }
+.stuck { margin-top: 6px; font-size: 0.86rem; }
+.stuck { display: grid; gap: 6px; justify-items: start; }
+.hint-label { margin: 4px 0 0; font-size: 0.8rem; color: var(--ink-soft); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.task code.chip { background: var(--sheet); border: 1px solid var(--rule); padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; }
+.stuck pre.code { width: 100%; margin: 0; }
+#complete { margin: 10px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--good-soft); color: var(--good); font-weight: 600; font-size: 0.9rem; }
+
+.pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+.pager a { display: grid; gap: 2px; padding: 12px 16px; border: 1px solid var(--rule); border-radius: 10px; text-decoration: none; color: var(--ink); background: var(--sheet); max-width: 48%; min-width: 0; }
+.pager a small { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+.pager a span { font-weight: 600; overflow-wrap: anywhere; }
+#next { margin-left: auto; text-align: right; }
+#next.ready { background: var(--accent); border-color: var(--accent); }
+#next.ready, #next.ready small { color: var(--sheet); }
+#loading { padding: 60px 16px; text-align: center; color: var(--ink-soft); }
+
+@media (max-width: 860px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  #menu { display: inline-block; }
+  #nav { display: none; position: fixed; inset: 53px 0 0 0; max-height: none; z-index: 9; background: var(--sheet); border-right: 0; }
+  body.nav-open #nav { display: block; }
+  main { padding: 22px 16px 60px; }
+  .meter-bar { width: 50px; }
+  .brand { font-size: 1rem; }
+  .hint-keys { display: none; }
+  .pager a { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="top">
+  <button type="button" id="menu" aria-controls="nav">Lessons</button>
+  <a class="brand" href="#intro"><b>&gt;_</b> SQL Practice Lab</a>
+  <div class="meter" title="Tasks completed across all lessons">
+    <span class="meter-bar"><span id="meter-fill"></span></span>
+    <span id="meter-text">0 tasks</span>
+  </div>
+</header>
+
+<p id="loading">Loading the SQL engine…</p>
+
+<div class="shell" id="app" hidden>
+  <nav id="nav" aria-label="Lessons"></nav>
+  <main id="main" tabindex="-1">
+    <article class="lesson">
+      <p class="eyebrow" id="eyebrow"></p>
+      <h1 id="lesson-title"></h1>
+      <div class="body" id="lesson-body"></div>
+
+      <section class="bench" aria-labelledby="bench-title">
+        <div class="bench-head">
+          <h2 id="bench-title">Practice</h2>
+          <span class="muted" id="task-count"></span>
+        </div>
+        <div class="bench-section">
+          <p class="label">Tables</p>
+          <div id="table-tabs" role="tablist"></div>
+          <div id="table-view"></div>
+        </div>
+        <div class="bench-section">
+          <label class="label" for="editor">Your query</label>
+          <textarea id="editor" placeholder="Write your SQL here" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+          <div class="actions">
+            <button type="button" class="btn primary" id="run">Run query</button>
+            <button type="button" class="btn" id="reset-data" title="Undo changes you made to the tables in this lesson">Reset data</button>
+            <span class="hint-keys"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> runs</span>
+          </div>
+          <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+        </div>
+        <div class="bench-section">
+          <p class="label">Result</p>
+          <div id="output"></div>
+        </div>
+        <div class="bench-section">
+          <p class="label">Tasks</p>
+          <ol id="tasks"></ol>
+          <p id="complete" hidden>Lesson complete.</p>
+          <p class="muted" style="margin-top:10px"><button type="button" class="link-btn" id="restart">Restart this lesson</button></p>
+        </div>
+      </section>
+
+      <nav class="pager" aria-label="Lesson navigation">
+        <a id="prev" href="#"><small>Previous</small><span id="prev-title"></span></a>
+        <a id="next" href="#"><small>Next</small><span id="next-title"></span></a>
+      </nav>
+
+      <footer class="nav-foot">
+        <p class="muted">Progress is saved in this browser only. To continue on another computer, copy your progress code here and paste it there.</p>
+        <div class="transfer">
+          <div class="actions">
+            <button type="button" class="btn" id="code-copy">Copy my progress code</button>
+            <span class="muted" id="code-status" role="status" aria-live="polite"></span>
+          </div>
+          <textarea id="code-box" rows="2" spellcheck="false" placeholder="Paste a progress code here, then press Load"></textarea>
+          <div class="actions"><button type="button" class="btn" id="code-load">Load progress code</button></div>
+        </div>
+        <p class="muted"><button type="button" class="link-btn" id="wipe">Erase all progress</button></p>
+        <div class="confirm" id="wipe-confirm" hidden>
+          <span class="muted">Erase every completed task and saved draft?</span>
+          <button type="button" class="btn danger" id="wipe-yes">Erase everything</button>
+          <button type="button" class="btn" id="wipe-no">Keep my progress</button>
+        </div>
+      </footer>
+    </article>
+  </main>
+</div>
+
+<script src="js/vendor/sql-asm.js"></script>
+<script src="js/datasets.js"></script>
+<script src="js/lessons/core.js"></script>
+<script src="js/lessons/topics.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/app.js"></script>
