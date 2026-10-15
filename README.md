@@ -1,5 +1,9 @@
 # SQL Practice Lab
 
+**Learn SQL in your browser: 32 interactive lessons with auto-graded practice, from SELECT to window functions. No install needed.**
+
+### ▶ [Open SQL Practice Lab](https://glassface2002-jpg.github.io/sql-practice/)
+
 An interactive SQL course that runs entirely in your browser. There are 32 lessons, from your first `SELECT` to window functions. Each one has a short explanation, a live SQLite database and auto-graded practice tasks.
 
 ## What's covered
